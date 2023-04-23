@@ -2,6 +2,7 @@
 import logging
 
 import gi
+import os
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib, Gtk, Pango
@@ -272,12 +273,19 @@ class BasePanel(ScreenPanel):
 
     def update_time(self):
         now = datetime.now()
+        batery_device = '/sys/class/power_supply/axp288_fuel_gauge'
+        battery_text = ''
+        if os.path.exists(batery_device):
+            battery = open(f'{batery_device}/capacity', 'r').read().strip()
+            status = open(f'{batery_device}/status', 'r').read().strip()
+            action = "+" if status == "Charging" else "-" if status == "Dischanging" else ""
+            battery_text = f'{action}{battery}% '
         confopt = self._config.get_main_config().getboolean("24htime", True)
         if now.minute != self.time_min or self.time_format != confopt:
             if confopt:
-                self.control['time'].set_text(f'{now:%H:%M }')
+                self.control['time'].set_text(f'{battery_text}{now:%H:%M }')
             else:
-                self.control['time'].set_text(f'{now:%I:%M %p}')
+                self.control['time'].set_text(f'{battery_text}{now:%I:%M %p}')
             self.time_min = now.minute
             self.time_format = confopt
         return True
